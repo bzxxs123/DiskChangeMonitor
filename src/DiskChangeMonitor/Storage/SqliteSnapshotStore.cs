@@ -221,6 +221,29 @@ namespace DiskChangeMonitor.Storage
             return result;
         }
 
+        public async Task<IReadOnlyList<string>> ListRootsAsync(CancellationToken ct = default)
+        {
+            var result = new List<string>();
+            await using var connection = await OpenConnectionAsync(ct);
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                SELECT DISTINCT root_path
+                FROM snapshots
+                WHERE status = @status
+                ORDER BY root_path COLLATE BINARY
+                """;
+            command.Parameters.AddWithValue("@status", SnapshotMetadata.Completed);
+
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                result.Add(reader.GetString(0));
+            }
+
+            return result;
+        }
+
         public async Task<SnapshotData> LoadAsync(string snapshotId, CancellationToken ct = default)
         {
             var metadata = await GetMetadataAsync(snapshotId, ct);

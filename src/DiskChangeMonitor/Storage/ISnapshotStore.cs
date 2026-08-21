@@ -38,6 +38,9 @@ namespace DiskChangeMonitor.Storage
         /// <summary>Completed snapshots for one root, newest first.</summary>
         Task<IReadOnlyList<SnapshotMetadata>> ListAsync(string rootPath, CancellationToken ct = default);
 
+        /// <summary>Distinct monitored roots that have at least one completed snapshot.</summary>
+        Task<IReadOnlyList<string>> ListRootsAsync(CancellationToken ct = default);
+
         /// <summary>Loads a snapshot as a streaming, path-sorted row source.</summary>
         Task<SnapshotData> LoadAsync(string snapshotId, CancellationToken ct = default);
     }

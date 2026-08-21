@@ -176,6 +176,20 @@ public class SqliteSnapshotStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ListRootsAsync_ReturnsDistinctRoots()
+    {
+        await ImportAsync("a.csv", new DateTime(2026, 8, 1, 10, 0, 0), 2);
+        var otherRoot = MonitoredLocation.FromPath(@"D:\Data");
+        var staging = await _store.BeginImportAsync(otherRoot, "b.csv", 1, "h", new DateTime(2026, 8, 2, 10, 0, 0));
+        await _store.AppendRowsAsync(staging.Id, Rows(2));
+        await _store.CommitAsync(staging.Id, 2, 0);
+
+        var roots = await _store.ListRootsAsync();
+
+        Assert.Equal(new[] { "C:\\", @"D:\Data\" }, roots);
+    }
+
+    [Fact]
     public async Task LargeAppend_BatchesAllRows()
     {
         var staging = await _store.BeginImportAsync(Root, "big.csv", 1, "h", new DateTime(2026, 8, 1));

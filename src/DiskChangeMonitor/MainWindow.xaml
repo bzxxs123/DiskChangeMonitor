@@ -1,0 +1,116 @@
+<Window x:Class="DiskChangeMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="磁盘变化监控 (Disk Change Monitor)"
+        Width="1200" Height="800" MinWidth="960" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <Style TargetType="DataGrid">
+      <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+      <Setter Property="HeadersVisibility" Value="Column"/>
+      <Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="IsReadOnly" Value="True"/>
+      <Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="RowHeight" Value="28"/>
+    </Style>
+    <Style TargetType="GroupBox">
+      <Setter Property="Margin" Value="6"/>
+      <Setter Property="Padding" Value="6"/>
+    </Style>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <!-- Import bar -->
+    <DockPanel Grid.Row="0" Margin="8">
+      <TextBlock Text="监控根目录:" VerticalAlignment="Center"/>
+      <TextBox Width="150" Margin="6,0" Text="{Binding RootPathText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+      <TextBlock Text="CSV 文件:" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      <TextBox Margin="6,0" Text="{Binding CsvPath, Mode=OneWay}" IsReadOnly="True" VerticalContentAlignment="Center"/>
+      <Button Content="选择 CSV…" Command="{Binding BrowseCommand}" Margin="6,0"/>
+      <Button Content="开始导入" Command="{Binding ImportCommand}" IsDefault="True" Margin="6,0"/>
+    </DockPanel>
+
+    <!-- Progress -->
+    <Grid Grid.Row="1" Margin="8,0,8,4">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <ProgressBar Grid.Column="0" Height="18" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
+      <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding StatusText}" VerticalAlignment="Center"/>
+    </Grid>
+
+    <!-- Main content -->
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="330"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <GroupBox Header="历史快照（每个根目录保留最近 5 次，对比最新两次）">
+          <DataGrid Height="180" ItemsSource="{Binding History}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="导入时间" Binding="{Binding DisplayTime}" Width="130"/>
+              <DataGridTextColumn Header="行数" Binding="{Binding DisplayRows}" Width="90"/>
+              <DataGridTextColumn Header="源文件" Binding="{Binding SourcePath}" Width="*"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </GroupBox>
+
+        <GroupBox Header="总览">
+          <StackPanel>
+            <TextBlock Text="{Binding OverviewText}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding CountsText}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+          </StackPanel>
+        </GroupBox>
+
+        <GroupBox Header="忽略行警告">
+          <TextBox Text="{Binding WarningsText, Mode=OneWay}" IsReadOnly="True"
+                   TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                   Height="120" FontFamily="Consolas" FontSize="11"/>
+        </GroupBox>
+      </StackPanel>
+
+      <DockPanel Grid.Column="1">
+        <DockPanel DockPanel.Dock="Top" Margin="6,6,6,0">
+          <Button Content="导出结果 CSV…" Command="{Binding ExportCommand}" DockPanel.Dock="Right" Margin="6,0,0,0"/>
+          <TextBlock Text="筛选:" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+          <ComboBox Width="100" Margin="6,0" ItemsSource="{Binding FilterOptions}" SelectedIndex="{Binding FilterIndex}" DockPanel.Dock="Left"/>
+          <TextBox Margin="6,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="按路径关键字筛选" VerticalContentAlignment="Center"/>
+        </DockPanel>
+
+        <GroupBox Header="按目录汇总" DockPanel.Dock="Top" Height="240">
+          <DataGrid ItemsSource="{Binding Directories}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="目录" Binding="{Binding Path}" Width="*" SortMemberPath="Path"/>
+              <DataGridTextColumn Header="逻辑大小变化" Binding="{Binding SizeDeltaText}" Width="120"/>
+              <DataGridTextColumn Header="分配空间变化" Binding="{Binding AllocatedDeltaText}" Width="120"/>
+              <DataGridTextColumn Header="变化项数" Binding="{Binding Count}" Width="90"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </GroupBox>
+
+        <GroupBox Header="明细（点击列头排序）" DockPanel.Dock="Bottom">
+          <DataGrid ItemsSource="{Binding Files}">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="类型" Binding="{Binding KindText}" Width="60" SortMemberPath="KindText"/>
+              <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="*" SortMemberPath="Path"/>
+              <DataGridTextColumn Header="变化前大小" Binding="{Binding OldSizeText}" Width="100"/>
+              <DataGridTextColumn Header="变化后大小" Binding="{Binding NewSizeText}" Width="100"/>
+              <DataGridTextColumn Header="分配空间变化" Binding="{Binding AllocatedDeltaText}" Width="110"/>
+              <DataGridTextColumn Header="目录" Binding="{Binding Directory}" Width="200" SortMemberPath="Directory"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </GroupBox>
+      </DockPanel>
+    </Grid>
+  </Grid>
+</Window>
