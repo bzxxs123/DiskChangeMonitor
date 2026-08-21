@@ -2,59 +2,50 @@
 
 ## Goal
 
-Create a local Windows `.exe` that lets the user monitor one or more disks or folders, with the main use case being the `C:\` drive. Each manual scan creates a snapshot. The application compares snapshots to show where storage increased or decreased.
+Create a local Windows `.exe` that imports WizTree CSV exports for monitored disks or folders, mainly `C:\`, and compares historical exports to show logical-size and allocated-space changes.
 
 ## Scope
 
-- User-selectable disks and folders; no automatic scanning on launch.
-- Keep the 10 most recent completed snapshots per monitored location.
-- Compare the latest two snapshots by default, with the ability to choose any two retained snapshots.
-- Show new, deleted, enlarged, reduced, moved/renamed, and unchanged files.
-- Aggregate file changes by directory and allow drilling down to file details.
-- Show scan mode, duration, processed file count, skipped item count, and warnings.
-- Export comparison results to CSV.
-- Store all data locally; do not read file contents or send telemetry.
+- User manually selects a WizTree CSV for each import; startup never scans or imports automatically.
+- Retain the 5 most recent completed snapshots per monitored root.
+- Compare only the latest two completed snapshots.
+- Show new, deleted, enlarged, reduced, unchanged, and path-based moved/renamed items.
+- Aggregate changes by directory and drill down to file rows.
+- Support WizTree 4.28 columns: `文件名称`, `大小`, `分配`, `修改时间`, `属性`, `文件`, `文件夹`, and summary columns.
+- Support CSV exports around 280 MB without loading the whole file or all rows into memory.
+- Export comparison results to CSV. Store all data locally and never read file contents or send telemetry.
+- Do not copy imported source CSVs into the application data directory; retain only source path, size, timestamp, and a content fingerprint.
 
 ## Architecture
 
-- UI layer for monitored locations, manual scan actions, history, filters, and results.
-- Scanner abstraction with a fast NTFS reader as the preferred provider for NTFS volumes and a recursive ordinary scanner as the fallback.
-- Snapshot store backed by SQLite, with indexed file paths and snapshot metadata.
-- Difference engine that compares two snapshots and classifies file changes.
-- Presentation-time directory aggregation so directory totals cannot diverge from file details.
+- WPF UI for monitored roots, manual CSV import, history, filters, and results.
+- WizTree CSV parser independent from WizTree binaries or licensing.
+- SQLite snapshot store with indexed paths and transactional commits.
+- Pure difference engine comparing both logical size (`大小`) and allocated space (`分配`).
+- Directory aggregation computed from file changes at presentation time.
 
-## Scan Flow
+## Import Flow
 
-1. Load monitored locations and retained history on startup without scanning.
-2. On manual start, detect the target file system and try fast NTFS reading for NTFS volumes.
-3. If fast reading is unavailable, incomplete, or lacks required access, offer an elevated restart and then fall back to ordinary scanning when necessary.
-4. Write the result to a temporary snapshot and validate it before committing it as a completed snapshot.
-5. Generate a comparison with the previous snapshot when one exists.
-6. Retain only the newest 10 completed snapshots after the new snapshot is safely stored.
+1. Load roots and retained history without importing.
+2. User chooses a WizTree CSV and monitored root.
+3. Stream-parse UTF-8/BOM, quoted Chinese paths, scientific-notation numbers, localized dates, and blank folder fields.
+4. Validate required columns, batch-insert rows into a temporary SQLite snapshot, and periodically report progress.
+5. Commit only validated snapshots, compare with the previous snapshot, then prune history to 10.
 
-Each file record contains its full path, size, last-write time, attributes, and (when available) a file identifier to assist move/rename detection.
+Each item stores path, logical size, allocated size, modified time, attributes, item kind, and optional folder summary values. Move/rename detection is path-based in v1 because CSV exports do not guarantee stable file IDs.
 
 ## UI
 
-- Monitored locations bar with add/remove controls and `C:\` as the convenient default.
-- Scan status bar showing last scan time, mode, duration, file count, skipped count, and warnings.
-- Overview showing total net change, new-file size, deleted-file size, growth, and reduction.
-- Difference table sortable by change size, with filters for new, deleted, enlarged, and reduced files.
-- Directory view with expandable rows and file view for direct sorting.
-- History view showing the 10 retained scans and allowing any two to be compared.
+- Root list and `Import CSV` button.
+- Import status showing source CSV, timestamp, parsed rows, ignored rows, and warnings.
+- Overview showing logical-size and allocated-space net changes.
+- Sortable/filterable directory and file views for new, deleted, enlarged, and reduced items.
+- History view with 5 retained imports; the newest two are the active comparison pair.
 
-## Reliability and Error Handling
+## Reliability and Testing
 
-- Save under `%LOCALAPPDATA%\DiskChangeMonitor\`.
-- Commit snapshots atomically through temporary storage so interruption cannot replace a valid prior snapshot with partial data.
-- Skip inaccessible or transiently unavailable files while recording warnings; never interpret an unscanned path as deleted.
-- Keep history when a disk is disconnected and mark that target as not scanned.
-- Preserve the previous snapshot if database writing fails; retain a recoverable backup on database corruption.
-
-## Testing
-
-Test small and large directories, a full `C:\` scan, protected and busy files, file creation/deletion/growth/shrinkage, moves and renames, cancellation, crashes, disconnected volumes, fast-reader fallback, history retention, arbitrary snapshot comparison, and CSV export.
+Malformed rows are skipped with row numbers and reasons. Missing required columns reject the import without changing history. Failed writes preserve the prior snapshot. Large imports use bounded memory, SQLite transactions, indexes created after bulk insert, and database-side diff queries. The app requires a 64-bit build and reports estimated database space before import when possible. Tests cover 280 MB-scale exports, Chinese/quoted paths, scientific notation, malformed rows, size/allocation changes, history pruning, latest-two comparison, and CSV export.
 
 ## Future Work
 
-The snapshot format and difference UI are intentionally independent of the scanner implementation so that NTFS/MFT performance improvements can be added without redesigning history or comparison behavior.
+The snapshot and diff layers remain independent so a future direct scanner can be added without redesigning history or comparison behavior.
