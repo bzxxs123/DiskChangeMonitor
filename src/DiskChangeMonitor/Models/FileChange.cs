@@ -13,8 +13,12 @@ namespace DiskChangeMonitor.Models
         long NewSize,
         long OldAllocated,
         long NewAllocated,
-        bool IsDirectory)
+        bool IsDirectory,
+        DateTime? Modified = null)
     {
+        public long SizeDelta => NewSize - OldSize;
+        public long AllocatedDelta => NewAllocated - OldAllocated;
+
         public string KindText =>
             Kind switch
             {

@@ -13,4 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DiskChangeMonitor.Tests" />
+  </ItemGroup>
 </Project>
