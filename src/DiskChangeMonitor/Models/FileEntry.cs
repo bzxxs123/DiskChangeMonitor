@@ -9,5 +9,7 @@ namespace DiskChangeMonitor.Models
         long Allocated,
         DateTime? Modified,
         string Attributes,
-        bool IsDirectory);
+        bool IsDirectory,
+        long? FileCount = null,
+        long? FolderCount = null);
 }

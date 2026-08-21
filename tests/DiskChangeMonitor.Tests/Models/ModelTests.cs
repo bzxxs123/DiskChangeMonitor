@@ -40,15 +40,19 @@ public class ModelTests
         Assert.Equal(4096, entry.Allocated);
         Assert.Null(entry.Modified);
         Assert.False(entry.IsDirectory);
+        Assert.Null(entry.FileCount);
+        Assert.Null(entry.FolderCount);
     }
 
     [Fact]
     public void FileEntry_ItemKindInferenceInputs_CarriesDirectoryFlag()
     {
-        var directory = new FileEntry(@"C:\folder", 0, 0, null, "-D-", true);
+        var directory = new FileEntry(@"C:\folder", 0, 0, null, "-D-", true, 5, 2);
         var file = new FileEntry(@"C:\folder\a.txt", 10, 4096, null, "----", false);
 
         Assert.True(directory.IsDirectory);
+        Assert.Equal(5, directory.FileCount);
+        Assert.Equal(2, directory.FolderCount);
         Assert.False(file.IsDirectory);
     }
 
