@@ -163,6 +163,16 @@ namespace DiskChangeMonitor.Storage
             return await GetMetadataAsync(snapshotId, ct) ?? throw new InvalidOperationException("提交后找不到快照。");
         }
 
+        public async Task UpdateFingerprintAsync(string snapshotId, string fingerprint, CancellationToken ct = default)
+        {
+            await using var connection = await OpenConnectionAsync(ct);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE snapshots SET fingerprint = @fingerprint WHERE id = @id";
+            command.Parameters.AddWithValue("@fingerprint", fingerprint);
+            command.Parameters.AddWithValue("@id", snapshotId);
+            await command.ExecuteNonQueryAsync(ct);
+        }
+
         public async Task CancelAsync(string snapshotId, CancellationToken ct = default)
         {
             await using var connection = await OpenConnectionAsync(ct);

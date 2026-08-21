@@ -25,6 +25,9 @@ namespace DiskChangeMonitor.Storage
 
         Task AppendRowsAsync(string snapshotId, IEnumerable<FileEntry> rows, CancellationToken ct = default);
 
+        /// <summary>Records the source CSV content fingerprint once it is known (after streaming).</summary>
+        Task UpdateFingerprintAsync(string snapshotId, string fingerprint, CancellationToken ct = default);
+
         /// <summary>Finalizes the staging snapshot, builds the path index, and prunes
         /// this root's history to the 5 newest completed snapshots.</summary>
         Task<SnapshotMetadata> CommitAsync(string snapshotId, long parsedRows, long ignoredRows, CancellationToken ct = default);

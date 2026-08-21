@@ -165,6 +165,17 @@ public class SqliteSnapshotStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateFingerprint_PersistsOnCommittedMetadata()
+    {
+        var staging = await _store.BeginImportAsync(Root, "a.csv", 1, "pending", new DateTime(2026, 8, 1));
+
+        await _store.UpdateFingerprintAsync(staging.Id, "abc123");
+        var committed = await _store.CommitAsync(staging.Id, 0, 0);
+
+        Assert.Equal("abc123", committed.Fingerprint);
+    }
+
+    [Fact]
     public async Task LargeAppend_BatchesAllRows()
     {
         var staging = await _store.BeginImportAsync(Root, "big.csv", 1, "h", new DateTime(2026, 8, 1));
